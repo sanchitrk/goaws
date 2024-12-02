@@ -1,0 +1,94 @@
+version: 0.2
+
+env:
+  variables:
+    # Set Go version and environment variables
+    GO_VERSION: "1.22"
+    CGO_ENABLED: "0"
+    GOOS: "linux"
+    GOARCH: "amd64"
+    # GitHub specific variables
+    GITHUB_REPO: "sanchitrk/goaws"
+    GITHUB_BRANCH: "main"
+
+  # Export these variables to all commands
+  exported-variables:
+    - GO_VERSION
+    - GOOS
+    - GOARCH
+
+phases:
+  install:
+    runtime-versions:
+      golang: $GO_VERSION
+    commands:
+      # Install additional tools needed for GitHub integration
+      - echo "Installing build dependencies and GitHub tools..."
+      - go version
+      - go env
+      # Install GitHub CLI if needed for additional GitHub interactions
+      - curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+      - echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+      - sudo apt update
+      - sudo apt install gh
+
+  pre_build:
+    commands:
+      # Verify GitHub repository and branch
+      - echo "Verifying GitHub source..."
+      - echo "Building from repository $GITHUB_REPO branch $GITHUB_BRANCH"
+      # Download dependencies and verify modules
+      - go mod download
+      - go mod verify
+      # Run tests and linting
+      - echo "Running tests and code quality checks..."
+      - go vet ./...
+      # Optional: Check if all files are properly formatted
+      - test -z $(gofmt -l .)
+      # Optional: Run static code analysis
+      - if [ -n "$(which golangci-lint)" ]; then golangci-lint run; fi
+
+  build:
+    commands:
+      # Build the Go binary with version information from Git
+      - echo "Building Go application from GitHub source..."
+      - GIT_COMMIT=$(git rev-parse HEAD)
+      - GIT_TAG=$(git describe --tags --always)
+      - |
+        go build -v \
+          -ldflags="-s -w \
+          -X main.GitCommit=$GIT_COMMIT \
+          -X main.GitTag=$GIT_TAG \
+          -X main.BuildTime=$(date -u '+%Y-%m-%d_%H:%M:%S')" \
+          -o bin/app server.go
+      # Create deployment package
+      - zip -j app.zip bin/app
+
+  post_build:
+    commands:
+      - echo "Build completed on `date`"
+      # Create GitHub release if building from a tag
+      - |
+        if [ -n "$(git tag --points-at HEAD)" ]; then
+          echo "Creating GitHub release..."
+          gh release create $(git tag --points-at HEAD) \
+            --title "Release $(git tag --points-at HEAD)" \
+            --notes "Automated release from AWS CodeBuild" \
+            bin/app app.zip
+        fi
+      # Run any additional post-build verification
+      - ./bin/app version || true
+
+artifacts:
+  files:
+    - bin/app
+    - app.zip
+    - appspec.yml
+    - scripts/**/*
+  discard-paths: no
+
+cache:
+  paths:
+    - /go/pkg/mod/**/* # Cache Go modules
+    - ~/.cache/go-build/** # Cache build cache
+
