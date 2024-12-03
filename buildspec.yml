@@ -84,8 +84,6 @@ phases:
             --notes "Automated release from AWS CodeBuild" \
             bin/app app.zip
         fi
-      # Run any additional post-build verification
-      - ./bin/app version || true
 
 artifacts:
   files:
