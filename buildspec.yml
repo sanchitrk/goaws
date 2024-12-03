@@ -38,7 +38,9 @@ phases:
     commands:
       - echo "Authenticating with GitHub..."
       - echo "GH_TOKEN is $GH_TOKEN"
-      - gh auth login --with-token <<< "$GH_TOKEN" || true
+      # - gh auth login --with-token <<< "$GH_TOKEN" || true
+      - echo "$GH_TOKEN" | gh auth login --with-token || true
+
       - echo $GITHUB_REPO
       # - echo "$GITHUB_TOKEN" | gh auth login --with-token || true
       # - gh auth login || true
