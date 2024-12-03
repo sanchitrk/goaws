@@ -15,10 +15,10 @@ files:
           - file
 
   # Systemd service file
-  - source: /scripts/zyg.service
+  - source: /scripts/srv.service
     destination: /etc/systemd/system/
     permissions:
-      - object: /etc/systemd/system/zyg.service
+      - object: /etc/systemd/system/srv.service
         owner: ubuntu
         group: ubuntu
         mode: 644
@@ -34,7 +34,7 @@ permissions:
     type:
       - file
 
-  - object: /etc/systemd/system/zyg.service
+  - object: /etc/systemd/system/srv.service
     owner: ubuntu
     group: ubuntu
     mode: 755

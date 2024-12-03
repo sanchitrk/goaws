@@ -455,6 +455,11 @@ resource "aws_iam_role" "ec2_role" {
       }
     ]
   })
+
+  tags = {
+    Environment = var.stack_env
+    ManagedBy   = "terraform"
+  }
 }
 
 resource "aws_iam_role_policy_attachment" "ec2_policy" {
@@ -465,6 +470,11 @@ resource "aws_iam_role_policy_attachment" "ec2_policy" {
 resource "aws_iam_instance_profile" "ec2_profile" {
   name = "${var.stack_name}-${var.stack_env}-ec2-profile"
   role = aws_iam_role.ec2_role.name
+
+  tags = {
+    Environment = var.stack_env
+    ManagedBy   = "terraform"
+  }
 }
 
 resource "aws_instance" "app" {
@@ -493,4 +503,38 @@ resource "aws_instance" "app" {
               sudo ./install auto
               sudo service codedeploy-agent start
               EOF
+}
+
+
+resource "aws_iam_role_policy" "ec2_s3_policy" {
+  name = "${var.stack_name}-${var.stack_env}-ec2-s3-policy"
+  role = aws_iam_role.ec2_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:GetObjectVersion",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          aws_s3_bucket.artifacts.arn,
+          "${aws_s3_bucket.artifacts.arn}/*"
+        ]
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ec2_codedeploy_policy" {
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole"
+  role       = aws_iam_role.ec2_role.name
+}
+
+resource "aws_iam_role_policy_attachment" "ec2_ssm_policy" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+  role       = aws_iam_role.ec2_role.name
 }
