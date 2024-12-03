@@ -33,8 +33,8 @@ phases:
     commands:
       - echo "Authenticating with GitHub..."
       - echo "$GH_TOKEN" | gh auth login --with-token || true
-      - gh repo clone $GITHUB_REPO -- --force .
-      - git checkout -f $CODEBUILD_SOURCE_VERSION
+      # - git config --global url."https://${GH_TOKEN}@github.com/".insteadOf "https://github.com/"
+      # - git checkout -f $CODEBUILD_SOURCE_VERSION
       # Initialize Git repository
       # - git init
       # - git remote add origin $CODEBUILD_SOURCE_REPO_URL
@@ -61,7 +61,7 @@ phases:
       - echo "Building Go application from GitHub source..."
       - |
         GIT_COMMIT=$CODEBUILD_SOURCE_VERSION
-        GIT_TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null || echo $CODEBUILD_SOURCE_VERSION)
+        GIT_TAG=$(gh release list -R $GITHUB_REPO --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null || echo $CODEBUILD_SOURCE_VERSION)
       - |
         go build -v \
           -ldflags="-s -w \
