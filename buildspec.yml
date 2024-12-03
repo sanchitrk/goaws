@@ -79,7 +79,7 @@ phases:
       - |
         if [ "$CODEBUILD_GIT_TAG" != "" ]; then
           echo "Creating GitHub release for tag $CODEBUILD_GIT_TAG..."
-          gh release create "$CODEBUILD_GIT_TAG" \
+          gh release -R $GITHUB_REPO create "$CODEBUILD_GIT_TAG" \
             --title "Release $CODEBUILD_GIT_TAG" \
             --notes "Automated release from AWS CodeBuild" \
             bin/app app.zip
