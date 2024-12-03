@@ -41,8 +41,8 @@ phases:
   pre_build:
     commands:
       # - echo "$GITHUB_TOKEN" | gh auth login --with-token
-      - echo "Authenticate GitHub..."
-      - gh auth login
+      # - echo "Authenticate GitHub..."
+      # - gh auth login
       - gh repo clone $GITHUB_REPO .
       - git checkout -f $CODEBUILD_SOURCE_VERSION
       # Initialize Git repository
