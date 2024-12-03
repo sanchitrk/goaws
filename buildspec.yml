@@ -10,12 +10,15 @@ env:
     # GitHub specific variables
     GITHUB_REPO: "sanchitrk/goaws"
     GITHUB_BRANCH: "main"
+    # Set GH_TOKEN for GitHub CLI
+    GH_TOKEN: $GITHUB_TOKEN
 
   # Export these variables to all commands
   exported-variables:
     - GO_VERSION
     - GOOS
     - GOARCH
+    - GH_TOKEN
 
 phases:
   install:
@@ -37,13 +40,13 @@ phases:
 
   pre_build:
     commands:
-      - echo "$GITHUB_TOKEN" | gh auth login --with-token
+      # - echo "$GITHUB_TOKEN" | gh auth login --with-token
       - gh repo clone $GITHUB_REPO .
       - git checkout -f $CODEBUILD_SOURCE_VERSION
       # Initialize Git repository
       # - git init
       # - git remote add origin $CODEBUILD_SOURCE_REPO_URL
-      # - git fetch
+      # - git fetch 
       # - git checkout -f $CODEBUILD_SOURCE_VERSION
       # Set up GitHub authentication for gh CLI
       # - echo "$GITHUB_TOKEN" | gh auth login --with-token
