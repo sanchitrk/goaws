@@ -41,12 +41,14 @@ phases:
   pre_build:
     commands:
       # - echo "$GITHUB_TOKEN" | gh auth login --with-token
+      - echo "Authenticate GitHub..."
+      - gh auth login
       - gh repo clone $GITHUB_REPO .
       - git checkout -f $CODEBUILD_SOURCE_VERSION
       # Initialize Git repository
       # - git init
       # - git remote add origin $CODEBUILD_SOURCE_REPO_URL
-      # - git fetch 
+      # - git fetch
       # - git checkout -f $CODEBUILD_SOURCE_VERSION
       # Set up GitHub authentication for gh CLI
       # - echo "$GITHUB_TOKEN" | gh auth login --with-token
