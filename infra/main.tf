@@ -284,12 +284,7 @@ resource "aws_codebuild_project" "app" {
     image_pull_credentials_type = "CODEBUILD"
 
     environment_variable {
-      name  = "GO_VERSION"
-      value = "1.23"
-    }
-
-    environment_variable {
-      name  = "GITHUB_TOKEN"
+      name  = "GH_TOKEN"
       value = var.github_token
     }
   }

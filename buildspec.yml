@@ -10,15 +10,11 @@ env:
     # GitHub specific variables
     GITHUB_REPO: "sanchitrk/goaws"
     GITHUB_BRANCH: "main"
-    # Set GH_TOKEN for GitHub CLI
-    GH_TOKEN: $GITHUB_TOKEN
 
-  # Export these variables to all commands
   exported-variables:
     - GO_VERSION
     - GOOS
     - GOARCH
-    - GH_TOKEN
 
 phases:
   install:
@@ -33,18 +29,19 @@ phases:
       - go version
       - go env
       # Install GitHub CLI for release creation
-      - curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-      - echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-      - sudo apt update
-      - sudo apt install gh
+      # - curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+      # - echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+      # - sudo apt update
+      # - sudo apt install gh
 
   pre_build:
     commands:
-      - echo "Authenticate GitHub..."
-      - echo $GH_TOKEN
+      - echo "Authenticating with GitHub..."
+      - echo "GH_TOKEN is $GH_TOKEN"
+      - gh auth login --with-token <<< "$GH_TOKEN" || true
       - echo $GITHUB_REPO
       # - echo "$GITHUB_TOKEN" | gh auth login --with-token || true
-      - gh auth login || true
+      # - gh auth login || true
       - gh repo clone $GITHUB_REPO .
       - git checkout -f $CODEBUILD_SOURCE_VERSION
       # Initialize Git repository
