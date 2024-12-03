@@ -28,24 +28,13 @@ phases:
       - echo "Installing build dependencies and GitHub tools..."
       - go version
       - go env
-      # Install GitHub CLI for release creation
-      # - curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-      # - echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-      # - sudo apt update
-      # - sudo apt install gh
 
   pre_build:
     commands:
       - echo "Authenticating with GitHub..."
-      - echo "GH_TOKEN is $GH_TOKEN"
-      # - gh auth login --with-token <<< "$GH_TOKEN" || true
       - echo "$GH_TOKEN" | gh auth login --with-token || true
-
-      - echo $GITHUB_REPO
-      # - echo "$GITHUB_TOKEN" | gh auth login --with-token || true
-      # - gh auth login || true
-      # - gh repo clone $GITHUB_REPO .
-      - git checkout -f $CODEBUILD_SOURCE_VERSION
+      - echo "Using GitHub repository $GITHUB_REPO..."
+      # - git checkout -f $CODEBUILD_SOURCE_VERSION
       # Initialize Git repository
       # - git init
       # - git remote add origin $CODEBUILD_SOURCE_REPO_URL
@@ -70,11 +59,11 @@ phases:
 
   build:
     commands:
-      # Build the Go binary with version information from Git
+      # Build the Go binary with version information
       - echo "Building Go application from GitHub source..."
       - |
-        GIT_COMMIT=$(git rev-parse HEAD || echo $CODEBUILD_RESOLVED_SOURCE_VERSION)
-        GIT_TAG=$(git describe --tags --always 2>/dev/null || echo $CODEBUILD_SOURCE_VERSION)
+        GIT_COMMIT=$CODEBUILD_SOURCE_VERSION
+        GIT_TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null || echo $CODEBUILD_SOURCE_VERSION)
       - |
         go build -v \
           -ldflags="-s -w \
