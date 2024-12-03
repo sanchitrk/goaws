@@ -6,7 +6,7 @@ provider "aws" {
 variable "aws_region" {
   description = "The AWS region"
   type        = string
-  default     = "ap-south-1"
+  default     = "ap-southeast-1"
 }
 
 variable "stack_env" {
@@ -84,7 +84,6 @@ output "codepipeline_bucket_arn" {
 }
 
 
-
 variable "github_repo" {
   description = "GitHub repository name (e.g., username/repo)"
   type        = string
@@ -97,13 +96,11 @@ variable "github_branch" {
   default     = "main"
 }
 
-
-# Reference the existing S3 artifacts bucket
-# Must exists before
-# data "aws_s3_bucket" "artifacts" {
-#   bucket = aws_s3_bucket.codepipeline_bucket.bucket
-# }
-
+variable "github_token" {
+  description = "GitHub personal access token"
+  type        = string
+  sensitive   = true
+}
 
 resource "aws_iam_role" "codebuild_role" {
   name = "${var.stack_name}-codebuild-role"
@@ -290,6 +287,11 @@ resource "aws_codebuild_project" "app" {
       name  = "GO_VERSION"
       value = "1.23"
     }
+
+    environment_variable {
+      name  = "GITHUB_TOKEN"
+      value = var.github_token
+    }
   }
 
   source {
@@ -309,7 +311,7 @@ resource "aws_codedeploy_deployment_group" "app" {
   service_role_arn      = aws_iam_role.codedeploy_role.arn
 
   deployment_style {
-    deployment_option = "WITH_TRAFFIC_CONTROL"
+    deployment_option = "WITHOUT_TRAFFIC_CONTROL"
     deployment_type   = "IN_PLACE"
   }
 
@@ -471,7 +473,7 @@ resource "aws_iam_instance_profile" "ec2_profile" {
 }
 
 resource "aws_instance" "app" {
-  ami                    = "ami-0dee22c13ea7a9a67"
+  ami                    = "ami-047126e50991d067b"
   instance_type          = "t2.micro"
   subnet_id              = tolist(data.aws_subnets.defaults.ids)[0]
   vpc_security_group_ids = [aws_security_group.ec2.id]

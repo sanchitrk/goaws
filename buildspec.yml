@@ -29,7 +29,7 @@ phases:
       - echo "Installing build dependencies and GitHub tools..."
       - go version
       - go env
-      # Install GitHub CLI if needed for additional GitHub interactions
+      # Install GitHub CLI for release creation
       - curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
       - echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
       - sudo apt update
@@ -37,6 +37,13 @@ phases:
 
   pre_build:
     commands:
+      # Initialize Git repository
+      - git init
+      - git remote add origin $CODEBUILD_SOURCE_REPO_URL
+      - git fetch
+      - git checkout -f $CODEBUILD_SOURCE_VERSION
+      # Set up GitHub authentication for gh CLI
+      - echo "$GITHUB_TOKEN" | gh auth login --with-token
       # Verify GitHub repository and branch
       - echo "Verifying GitHub source..."
       - echo "Building from repository $GITHUB_REPO branch $GITHUB_BRANCH"
@@ -55,8 +62,9 @@ phases:
     commands:
       # Build the Go binary with version information from Git
       - echo "Building Go application from GitHub source..."
-      - GIT_COMMIT=$(git rev-parse HEAD)
-      - GIT_TAG=$(git describe --tags --always)
+      - |
+        GIT_COMMIT=$(git rev-parse HEAD || echo $CODEBUILD_RESOLVED_SOURCE_VERSION)
+        GIT_TAG=$(git describe --tags --always 2>/dev/null || echo $CODEBUILD_SOURCE_VERSION)
       - |
         go build -v \
           -ldflags="-s -w \
@@ -72,10 +80,10 @@ phases:
       - echo "Build completed on `date`"
       # Create GitHub release if building from a tag
       - |
-        if [ -n "$(git tag --points-at HEAD)" ]; then
-          echo "Creating GitHub release..."
-          gh release create $(git tag --points-at HEAD) \
-            --title "Release $(git tag --points-at HEAD)" \
+        if [ "$CODEBUILD_GIT_TAG" != "" ]; then
+          echo "Creating GitHub release for tag $CODEBUILD_GIT_TAG..."
+          gh release create "$CODEBUILD_GIT_TAG" \
+            --title "Release $CODEBUILD_GIT_TAG" \
             --notes "Automated release from AWS CodeBuild" \
             bin/app app.zip
         fi
@@ -94,4 +102,3 @@ cache:
   paths:
     - /go/pkg/mod/**/* # Cache Go modules
     - ~/.cache/go-build/** # Cache build cache
-
