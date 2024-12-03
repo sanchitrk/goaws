@@ -37,15 +37,19 @@ phases:
 
   pre_build:
     commands:
-      # Initialize Git repository
-      - git init
-      - git remote add origin $CODEBUILD_SOURCE_REPO_URL
-      - git fetch
-      - git checkout -f $CODEBUILD_SOURCE_VERSION
-      # Set up GitHub authentication for gh CLI
       - echo "$GITHUB_TOKEN" | gh auth login --with-token
+      - gh repo clone $GITHUB_REPO .
+      - git checkout -f $CODEBUILD_SOURCE_VERSION
+      # Initialize Git repository
+      # - git init
+      # - git remote add origin $CODEBUILD_SOURCE_REPO_URL
+      # - git fetch
+      # - git checkout -f $CODEBUILD_SOURCE_VERSION
+      # Set up GitHub authentication for gh CLI
+      # - echo "$GITHUB_TOKEN" | gh auth login --with-token
       # Verify GitHub repository and branch
       - echo "Verifying GitHub source..."
+      - gh repo view --json nameWithOwner,defaultBranchRef --jq '.nameWithOwner + " branch " + .defaultBranchRef.name'
       - echo "Building from repository $GITHUB_REPO branch $GITHUB_BRANCH"
       # Download dependencies and verify modules
       - go mod download
