@@ -3,7 +3,7 @@ version: 0.2
 env:
   variables:
     # Set Go version and environment variables
-    GO_VERSION: "1.22"
+    GO_VERSION: "1.23"
     CGO_ENABLED: "0"
     GOOS: "linux"
     GOARCH: "amd64"
@@ -19,9 +19,12 @@ env:
 
 phases:
   install:
-    runtime-versions:
-      golang: $GO_VERSION
     commands:
+      # Update Go version with goenv
+      - echo "Make sure goenv is up to date"
+      - cd $HOME/.goenv && git pull --ff-only && cd -
+      - echo "Install $GO_VERSION..."
+      - goenv install $GO_VERSION && goenv $GO_VERSION
       # Install additional tools needed for GitHub integration
       - echo "Installing build dependencies and GitHub tools..."
       - go version
