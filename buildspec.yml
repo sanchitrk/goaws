@@ -33,7 +33,7 @@ phases:
     commands:
       - echo "Authenticating with GitHub..."
       - echo "$GH_TOKEN" | gh auth login --with-token || true
-      - gh repo clone $GITHUB_REPO --force .
+      - gh repo clone $GITHUB_REPO -- --force .
       - git checkout -f $CODEBUILD_SOURCE_VERSION
       # Initialize Git repository
       # - git init
