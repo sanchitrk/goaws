@@ -44,7 +44,7 @@ phases:
       - echo $GITHUB_REPO
       # - echo "$GITHUB_TOKEN" | gh auth login --with-token || true
       # - gh auth login || true
-      - gh repo clone $GITHUB_REPO .
+      # - gh repo clone $GITHUB_REPO .
       - git checkout -f $CODEBUILD_SOURCE_VERSION
       # Initialize Git repository
       # - git init
