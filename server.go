@@ -13,5 +13,5 @@ func main() {
 
 func HelloServer(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("got request...")
-	fmt.Fprintf(w, "Hello, Checking Deployment!")
+	fmt.Fprintf(w, "Hello, Checking Again")
 }
