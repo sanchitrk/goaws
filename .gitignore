@@ -31,3 +31,4 @@ go.work.sum
 *.tfstate
 *.tfstate.backup
 
+.terraform.lock.hcl
