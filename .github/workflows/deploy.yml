@@ -2,10 +2,6 @@ name: Build and Deploy Go AWS application
 
 on:
   workflow_dispatch: {}
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
 
 env:
   AWS_REGION: ap-southeast-1
