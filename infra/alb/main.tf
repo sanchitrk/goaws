@@ -102,6 +102,20 @@ resource "aws_codedeploy_deployment_group" "app" {
       name = aws_lb_target_group.app.name
     }
   }
+
+  ec2_tag_set {
+    ec2_tag_filter {
+      key   = "Environment"
+      type  = "KEY_AND_VALUE"
+      value = var.stack_env
+    }
+
+    ec2_tag_filter {
+      key   = "Application"
+      type  = "KEY_AND_VALUE"
+      value = aws_codedeploy_app.app.name
+    }
+  }
 }
 
 
@@ -125,6 +139,15 @@ data "aws_subnets" "defaults" {
 }
 
 resource "aws_security_group" "alb" {
+  name = "${var.stack_name}-${var.stack_env}-alb-sg"
+
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+
+
   ingress {
     from_port   = 80
     to_port     = 80
@@ -149,7 +172,11 @@ resource "aws_security_group" "alb" {
 
 
 resource "aws_security_group" "ec2" {
-  name = "${var.stack_name}-${var.stack_env}-sg"
+  name = "${var.stack_name}-${var.stack_env}-ec2-sg"
+
+  lifecycle {
+    create_before_destroy = true
+  }
 
 
   ingress {
@@ -286,7 +313,9 @@ resource "aws_instance" "app1" {
   key_name               = var.key_pair_name
 
   tags = {
-    Name = "${var.stack_name}-${var.stack_env}-instance-1"
+    Name        = "${var.stack_name}-${var.stack_env}-instance-1"
+    Environment = var.stack_env
+    Application = aws_codedeploy_app.app.name
   }
 
   # User data script to install CodeDeploy agent
@@ -314,8 +343,12 @@ resource "aws_instance" "app2" {
   iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
   key_name               = var.key_pair_name
 
+
+
   tags = {
-    Name = "${var.stack_name}-${var.stack_env}-instance-2"
+    Name        = "${var.stack_name}-${var.stack_env}-instance-2"
+    Environment = var.stack_env
+    Application = aws_codedeploy_app.app.name
   }
 
   user_data = <<-EOF
