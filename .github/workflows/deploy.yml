@@ -2,10 +2,10 @@ name: Build and Deploy Go AWS application
 
 on:
   workflow_dispatch: {}
-  # push:
-  #   branches: [main]
-  # pull_request:
-  #   branches: [main]
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 env:
   AWS_REGION: ap-southeast-1
@@ -71,4 +71,4 @@ jobs:
       - name: Upload Artifacts to S3
         run: |
           BUCKET=${{ env.STACK_NAME }}-${{ env.STACK_ENV }}-${{ env.AWS_REGION }}-artifacts-${{ secrets.AWS_ACCOUNT_ID }}
-          aws s3 cp dist.zip s3://$BUCKET/${{ env.APPLICATION }}/
+          aws s3 cp dist.zip s3://$BUCKET/${{ env.APPLICATION }}/${{github.sha}}/
