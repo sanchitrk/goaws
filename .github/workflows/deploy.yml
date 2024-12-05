@@ -51,7 +51,7 @@ jobs:
       - name: Build Application
         run: |
           echo "Building Go application from source..."
-          GIT_COMMIT=${{github.sha}}
+          GIT_COMMIT=${{ github.sha }}
           go build -v \
             -ldflags="-s -w \
             -X main.GitCommit=$GIT_COMMIT \
@@ -72,3 +72,29 @@ jobs:
         run: |
           BUCKET=${{ env.STACK_NAME }}-${{ env.STACK_ENV }}-${{ env.AWS_REGION }}-artifacts-${{ secrets.AWS_ACCOUNT_ID }}
           aws s3 cp dist.zip s3://$BUCKET/${{ env.APPLICATION }}/${{github.sha}}/
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: Dev
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4 # Updated to v4
+        with:
+          role-to-assume: ${{ secrets.IAMROLE_GITHUB }}
+          role-session-name: GitHub-Action-Role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy to AWS CodeDeploy
+        run: |
+          BUCKET="${{ env.STACK_NAME }}-${{ env.STACK_ENV }}-${{ env.AWS_REGION }}-artifacts-${{ secrets.AWS_ACCOUNT_ID }}"
+          DEPLOYMENT_NAME="${{ env.STACK_NAME }}-${{ env.STACK_ENV }}"
+          DEPLOYMENT_GROUP_NAME="${{ env.STACK_NAME }}-${{ env.STACK_ENV }}-deployment-group"
+
+          aws deploy create-deployment \
+            --application-name "${DEPLOYMENT_NAME}" \
+            --deployment-group-name "${DEPLOYMENT_GROUP_NAME}" \
+            --s3-location bucket=${BUCKET},bundleType=zip,key=${{ env.APPLICATION }}/${{ github.sha }}/dist.zip \
+            --ignore-application-stop-failures
