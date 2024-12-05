@@ -56,22 +56,17 @@ jobs:
             -ldflags="-s -w \
             -X main.GitCommit=$GIT_COMMIT \
             -X main.BuildTime=$(date -u '+%Y-%m-%d_%H:%M:%S')" \
-            -o bin/app server.go
+            -o dist/bin/app server.go
 
       - name: Create Dist Package
         run: |
-          mkdir -p dist
-          cp bin/app dist/
           cp appspec.yml dist/
           cp -r scripts dist/
-          cd dist
-          zip -r ../dist.zip .
-          cd ..
 
       - name: Upload Artifacts to S3
         run: |
           BUCKET=${{ env.STACK_NAME }}-${{ env.STACK_ENV }}-${{ env.AWS_REGION }}-artifacts-${{ secrets.AWS_ACCOUNT_ID }}
-          aws s3 cp dist.zip s3://$BUCKET/${{ env.APPLICATION }}/${{github.sha}}/
+          aws s3 cp dist/ s3://$BUCKET/${{ env.APPLICATION }}/${{ github.sha }}/ --recursive
 
   deploy:
     needs: build
@@ -96,5 +91,5 @@ jobs:
           aws deploy create-deployment \
             --application-name "${DEPLOYMENT_NAME}" \
             --deployment-group-name "${DEPLOYMENT_GROUP_NAME}" \
-            --s3-location bucket=${BUCKET},bundleType=zip,key=${{ env.APPLICATION }}/${{ github.sha }}/dist.zip \
+            --s3-location bucket=${BUCKET},bundleType=zip,key=${{ env.APPLICATION }}/${{ github.sha }} \
             --ignore-application-stop-failures
