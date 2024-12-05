@@ -89,7 +89,7 @@ jobs:
           DEPLOYMENT_GROUP_NAME="${{ env.STACK_NAME }}-${{ env.STACK_ENV }}-deployment-group"
 
           aws deploy create-deployment \
-            --application-name "${DEPLOYMENT_NAME}" \
-            --deployment-group-name "${DEPLOYMENT_GROUP_NAME}" \
-            --s3-location bucket=${BUCKET},bundleType=zip,key=${{ env.APPLICATION }}/${{ github.sha }} \
-            --ignore-application-stop-failures
+                    --application-name "${DEPLOYMENT_NAME}" \
+                    --deployment-group-name "${DEPLOYMENT_GROUP_NAME}" \
+                    --revision "revisionType=S3,s3Location={bucket=${BUCKET},key=${{ env.APPLICATION }}/${{ github.sha }}/,bundleType=DIRECTORY}" \
+                    --ignore-application-stop-failures
