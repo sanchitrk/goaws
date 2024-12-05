@@ -28,11 +28,6 @@ jobs:
       - name: Run go vet
         run: go vet ./...
 
-      - name: Install and run staticcheck
-        uses: dominikh/staticcheck-action@v1.3.0
-        with:
-          version: "latest"
-
       # Note: golint is deprecated, replacing with golangci-lint which includes multiple linters
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v4
