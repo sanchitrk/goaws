@@ -60,13 +60,22 @@ jobs:
 
       - name: Create Dist Package
         run: |
+          if [ ! -f dist/bin/app ]; then
+            echo "Binary not found at dist/bin/app"
+            exit 1
+          fi
+
           cp appspec.yml dist/
           cp -r scripts dist/
+
+          cd dist
+          zip -r ../dist.zip .
+          cd ..
 
       - name: Upload Artifacts to S3
         run: |
           BUCKET=${{ env.STACK_NAME }}-${{ env.STACK_ENV }}-${{ env.AWS_REGION }}-artifacts-${{ secrets.AWS_ACCOUNT_ID }}
-          aws s3 cp dist/ s3://$BUCKET/${{ env.APPLICATION }}/${{ github.sha }}/ --recursive
+          aws s3 cp dist.zip s3://$BUCKET/${{ env.APPLICATION }}/${{ github.sha }}/
 
   deploy:
     needs: build
@@ -89,7 +98,7 @@ jobs:
           DEPLOYMENT_GROUP_NAME="${{ env.STACK_NAME }}-${{ env.STACK_ENV }}-deployment-group"
 
           aws deploy create-deployment \
-                    --application-name "${DEPLOYMENT_NAME}" \
-                    --deployment-group-name "${DEPLOYMENT_GROUP_NAME}" \
-                    --revision "revisionType=S3,s3Location={bucket=${BUCKET},key=${{ env.APPLICATION }}/${{ github.sha }}/,bundleType=DIRECTORY}" \
-                    --ignore-application-stop-failures
+            --application-name "${DEPLOYMENT_NAME}" \
+            --deployment-group-name "${DEPLOYMENT_GROUP_NAME}" \
+            --s3-location bucket=${BUCKET},key=${{ env.APPLICATION }}/${{ github.sha }}/dist.zip,bundleType=zip \
+            --ignore-application-stop-failures

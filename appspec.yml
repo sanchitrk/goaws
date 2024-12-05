@@ -1,9 +1,7 @@
 version: 0.0
 os: linux
 
-# File mappings for Ubuntu with 'ubuntu' user ownership
 files:
-  # Application binary in /usr/local/bin
   - source: /bin/app
     destination: /usr/local/bin/
     permissions:
@@ -14,7 +12,6 @@ files:
         type:
           - file
 
-  # Systemd service file
   - source: /scripts/srv.service
     destination: /etc/systemd/system/
     permissions:
@@ -25,54 +22,30 @@ files:
         type:
           - file
 
-# Set up permissions structure for ubuntu user
-permissions:
-  - object: /usr/local/bin/app
-    owner: ubuntu
-    group: ubuntu
-    mode: 755
-    type:
-      - file
-
-  - object: /etc/systemd/system/srv.service
-    owner: ubuntu
-    group: ubuntu
-    mode: 755
-    type:
-      - file
-
-# Deployment lifecycle hooks
 hooks:
   BeforeInstall:
     - location: scripts/before.sh
       timeout: 300
       runas: root
-      # Sets up directories and permissions
-      # Ensures ubuntu user has necessary permissions
 
   AfterInstall:
     - location: scripts/after.sh
       timeout: 300
       runas: root
-      # Reloads systemd and sets up configurations
-      # Ensures proper ownership for ubuntu user
 
   ApplicationStop:
     - location: scripts/stop.sh
       timeout: 300
       runas: root
-      # Stops the service using systemctl
 
   ApplicationStart:
     - location: scripts/start.sh
       timeout: 300
       runas: root
-      # Starts the service using systemctl
 
   ValidateService:
     - location: scripts/validate.sh
       timeout: 300
       runas: ubuntu
-      # Validates application as ubuntu user
 
 file_exists_behavior: OVERWRITE
