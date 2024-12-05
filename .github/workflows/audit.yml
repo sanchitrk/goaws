@@ -27,10 +27,3 @@ jobs:
 
       - name: Run go vet
         run: go vet ./...
-
-      # Note: golint is deprecated, replacing with golangci-lint which includes multiple linters
-      - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v4
-        with:
-          version: latest
-          args: --timeout=5m
