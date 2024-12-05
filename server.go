@@ -13,5 +13,5 @@ func main() {
 
 func HelloServer(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("got request...")
-	fmt.Fprintf(w, "Hello, Go AWS!")
+	fmt.Fprintf(w, "Hello, Go AWS Deployed App!")
 }
