@@ -92,11 +92,13 @@ resource "aws_codedeploy_deployment_group" "app" {
   deployment_group_name = "${var.stack_name}-${var.stack_env}-deployment-group"
   service_role_arn      = aws_iam_role.codedeploy_role.arn
 
+  deployment_config_name = "CodeDeployDefault.OneAtATime"
+
   # Deployment style configuration
   # - WITHOUT_TRAFFIC_CONTROL: No load balancer is used
   # - IN_PLACE: Updates existing instances instead of blue/green deployment
   deployment_style {
-    deployment_option = "WITH_TRAFFIC_CONTROL"
+    deployment_option = "WITHOUT_TRAFFIC_CONTROL"
     deployment_type   = "IN_PLACE"
   }
 
@@ -181,16 +183,14 @@ resource "aws_security_group" "ec2" {
     create_before_destroy = true
   }
 
-
   ingress {
-    from_port   = 80
-    to_port     = 80
+    from_port   = 443
+    to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
-    description = "Allow HTTP access"
+    description = "Allow HTTPS for CodeDeploy agent"
   }
 
-  # Allow application access
   ingress {
     from_port   = var.app_port
     to_port     = var.app_port
@@ -199,7 +199,6 @@ resource "aws_security_group" "ec2" {
     description = "Allow application access"
   }
 
-  # Allow SSH access for management
   ingress {
     from_port   = 22
     to_port     = 22
@@ -208,7 +207,6 @@ resource "aws_security_group" "ec2" {
     description = "Allow SSH access"
   }
 
-  # Allow all outbound traffic
   egress {
     from_port   = 0
     to_port     = 0
@@ -309,7 +307,7 @@ resource "aws_lb_listener" "app" {
 
 resource "aws_launch_template" "app" {
   name = "${var.stack_name}-${var.stack_env}-launch-template"
-  
+
   image_id      = "ami-047126e50991d067b"
   instance_type = "t2.micro"
 
@@ -325,24 +323,33 @@ resource "aws_launch_template" "app" {
 
   user_data = base64encode(<<-EOF
               #!/bin/bash
-              # Update system packages
+              exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
+              
+              echo "Installing dependencies..."
               sudo apt-get update
               sudo apt-get install -y ruby-full wget
 
-              # Install CodeDeploy agent
+              echo "Installing CodeDeploy agent..."
               cd /home/ubuntu
               wget https://aws-codedeploy-${var.aws_region}.s3.${var.aws_region}.amazonaws.com/latest/install
               chmod +x ./install
               sudo ./install auto
-              sudo service codedeploy-agent start
+
+              echo "Starting CodeDeploy agent..."
+              sudo systemctl enable codedeploy-agent
+              sudo systemctl start codedeploy-agent
+              
+              echo "Checking CodeDeploy agent status..."
+              sudo systemctl status codedeploy-agent
               EOF
   )
 
   tag_specifications {
     resource_type = "instance"
     tags = {
-      Name        = "${var.stack_name}-${var.stack_env}"
+      Name        = "${var.stack_name}-${var.stack_env}-asg"
       Environment = var.stack_env
+      Application = aws_codedeploy_app.app.name
       ManagedBy   = "terraform"
     }
   }
@@ -358,29 +365,29 @@ resource "aws_autoscaling_group" "app" {
     version = "$Latest"
   }
 
-  vpc_zone_identifier  = data.aws_subnets.defaults.ids
+  vpc_zone_identifier = data.aws_subnets.defaults.ids
   target_group_arns   = [aws_lb_target_group.app.arn]
   health_check_type   = "ELB"
-  
+
   min_size         = 1
-  max_size         = 2
-  desired_capacity = 2
+  max_size         = 1
+  desired_capacity = 1
 
   tag {
     key                 = "Name"
-    value              = "${var.stack_name}-${var.stack_env}-asg"
+    value               = "${var.stack_name}-${var.stack_env}-asg"
     propagate_at_launch = true
   }
 
   tag {
     key                 = "Environment"
-    value              = var.stack_env
+    value               = var.stack_env
     propagate_at_launch = true
   }
 
   tag {
     key                 = "Application"
-    value              = aws_codedeploy_app.app.name
+    value               = aws_codedeploy_app.app.name
     propagate_at_launch = true
   }
 }
@@ -409,9 +416,36 @@ resource "aws_iam_role_policy" "ec2_s3_policy" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "ec2_codedeploy_policy" {
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole"
-  role       = aws_iam_role.ec2_role.name
+
+resource "aws_iam_role_policy" "ec2_codedeploy_policy" {
+  name = "${var.stack_name}-${var.stack_env}-ec2-codedeploy-policy"
+  role = aws_iam_role.ec2_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "codedeploy:*"
+        ]
+        Resource = [
+          "arn:aws:codedeploy:${var.aws_region}:${data.aws_caller_identity.current.account_id}:*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:Get*",
+          "s3:List*"
+        ]
+        Resource = [
+          data.aws_s3_bucket.artifacts.arn,
+          "${data.aws_s3_bucket.artifacts.arn}/*"
+        ]
+      }
+    ]
+  })
 }
 
 resource "aws_iam_role_policy_attachment" "ec2_ssm_policy" {
